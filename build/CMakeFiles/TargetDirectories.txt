@@ -1,0 +1,3 @@
+/Users/estoneman/Programming/projects/mycrib/build/CMakeFiles/mycrib.dir
+/Users/estoneman/Programming/projects/mycrib/build/CMakeFiles/edit_cache.dir
+/Users/estoneman/Programming/projects/mycrib/build/CMakeFiles/rebuild_cache.dir

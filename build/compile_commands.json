@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/Users/estoneman/Programming/projects/mycrib/build",
+  "command": "clang  -I/usr/local/Cellar/libmicrohttpd/1.0.1/include -std=gnu11 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk -o CMakeFiles/mycrib.dir/mycrib.c.o -c /Users/estoneman/Programming/projects/mycrib/mycrib.c",
+  "file": "/Users/estoneman/Programming/projects/mycrib/mycrib.c",
+  "output": "CMakeFiles/mycrib.dir/mycrib.c.o"
+}
+]
