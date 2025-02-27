@@ -1,1 +1,0 @@
-clang  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.2.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/mycrib.dir/mycrib.c.o -o mycrib   -L/usr/local/Cellar/libmicrohttpd/1.0.1/lib  -Wl,-rpath,/usr/local/Cellar/libmicrohttpd/1.0.1/lib -lmicrohttpd
