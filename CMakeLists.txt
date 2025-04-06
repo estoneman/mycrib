@@ -4,11 +4,13 @@ project(mycrib)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_C_STANDARD 11)
+add_compile_options(-Wall -Wextra -Werror -pedantic)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MICROHTTPD REQUIRED libmicrohttpd)
 
-add_executable(mycrib mycrib.c)
+set(C_SOURCE src/mycrib.c)
+add_executable(mycrib ${C_SOURCE})
 
 target_include_directories(mycrib PRIVATE ${MICROHTTPD_INCLUDE_DIRS})
 target_link_directories(mycrib PRIVATE ${MICROHTTPD_LIBRARY_DIRS})
