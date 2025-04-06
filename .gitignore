@@ -1,5 +1,5 @@
 /build
 /src/tutorial
-/.cache/clangd/index
+/.cache
 compile_commands.json
 .clang-format
