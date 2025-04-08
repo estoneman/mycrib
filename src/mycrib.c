@@ -143,8 +143,8 @@ main (void)
   enum MHD_FLAG flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_DEBUG
                         | MHD_USE_PEDANTIC_CHECKS;
 
-  daemon = MHD_start_daemon (flags, PORT, NULL, NULL, &answer_connection,
-                             NULL, MHD_OPTION_END);
+  daemon = MHD_start_daemon (flags, PORT, NULL, NULL, &answer_connection, NULL,
+                             MHD_OPTION_END);
 
   if (NULL == daemon)
     {
