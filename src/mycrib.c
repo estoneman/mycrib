@@ -4,26 +4,31 @@
  *   - Get movie: GET /movie?title=<title>&search_type=<type>
  */
 
+#include <assert.h>
+#include <microhttpd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <microhttpd.h>
+#include "route.h"
 
 #define PORT 8888
 #define ARRAY_LEN(arr) (sizeof (arr) / sizeof ((arr)[0]))
 #define MAX_ROUTE_LEN 64
 
-const char *ROUTES[] = { "/", "/movies", "/movie" };
-size_t n_routes = ARRAY_LEN (ROUTES);
+const char *ROUTES[] = { "/movie", "/movies" };
+#define N_ROUTES ARRAY_LEN (ROUTES)
+
+Route routes[N_ROUTES];
+size_t curr_route = 0;
 
 int
-valid_route (const char *req_url)
+route_id (const char *req_url)
 {
-  for (size_t i = 0; i < n_routes; ++i)
+  for (size_t i = 0; i < N_ROUTES; ++i)
     {
       if (strcmp (ROUTES[i], req_url) == 0)
-        return 0;
+        return i;
     }
 
   return -1;
@@ -45,6 +50,8 @@ send_response (struct MHD_Connection *connection, const char *buf,
 
   response = MHD_create_response_from_buffer (bufsize, (void *)buf,
                                               MHD_RESPMEM_PERSISTENT);
+  MHD_add_response_header (response, MHD_HTTP_HEADER_CONTENT_TYPE,
+                           "application/json");
   ret = MHD_queue_response (connection, code, response);
   MHD_destroy_response (response);
 
@@ -61,6 +68,8 @@ send_response_free_callback (struct MHD_Connection *connection,
 
   response = MHD_create_response_from_buffer_with_free_callback (
       bufsize, (void *)buf, crfc);
+  MHD_add_response_header (response, MHD_HTTP_HEADER_CONTENT_TYPE,
+                           "application/json");
   ret = MHD_queue_response (connection, code, response);
   MHD_destroy_response (response);
 
@@ -70,34 +79,34 @@ send_response_free_callback (struct MHD_Connection *connection,
 enum MHD_Result
 router (struct MHD_Connection *connection, const char *url)
 {
-  char *buf;
-  size_t urllen, buflen;
   const char *page;
+  char *error, *response;
+  size_t url_len, error_len;
+  int route;
 
-  urllen = strlen (url);
-  buflen = 1024 + (urllen > MAX_ROUTE_LEN ? MAX_ROUTE_LEN : urllen);
+  url_len = strlen (url);
+  error_len = 1024 + (url_len > MAX_ROUTE_LEN ? MAX_ROUTE_LEN : url_len);
 
-  if ((buf = malloc (buflen + 1)) == NULL)
+  if ((error = malloc (error_len + 1)) == NULL)
     {
-      page = "<html><body>Internal Server Error</body></html>";
+      page = "{\"error\": \"Internal Server Error\"}";
 
       return send_response (connection, page, strlen (page),
                             MHD_HTTP_INTERNAL_SERVER_ERROR);
     }
 
-  if (valid_route (url) == -1)
+  if ((route = route_id (url)) == -1)
     {
-      page = "<html><body>Invalid route: %s</body></html>";
-      snprintf (buf, buflen, page, url);
+      page = "{\"error\": \"Invalid route: \"%s\"}";
+      snprintf (error, error_len, page, url);
 
-      return send_response_free_callback (connection, buf, strlen (buf),
+      return send_response_free_callback (connection, error, strlen (error),
                                           MHD_HTTP_NOT_FOUND, &mem_free);
     }
 
-  page = "<html><body>%s</body></html>";
-  snprintf (buf, buflen, page, url);
+  response = routes[route].handler ();
 
-  return send_response_free_callback (connection, buf, strlen (buf),
+  return send_response_free_callback (connection, response, strlen (response),
                                       MHD_HTTP_OK, &mem_free);
 }
 
@@ -127,7 +136,7 @@ answer_connection (void *cls, struct MHD_Connection *connection,
   if (dh_check_method (method) == MHD_NO)
     {
       const char *page;
-      page = "<html><body>Method not allowed</body></html>\n";
+      page = "{\"error\": \"Method not allowed\"}";
 
       return send_response (connection, page, strlen (page),
                             MHD_HTTP_METHOD_NOT_ALLOWED);
@@ -136,12 +145,24 @@ answer_connection (void *cls, struct MHD_Connection *connection,
   return router (connection, url);
 }
 
+void
+add_route (const char *path, char *(*handler) (void))
+{
+  assert (curr_route < N_ROUTES);
+
+  routes[curr_route].path = path;
+  routes[curr_route++].handler = handler;
+}
+
 int
 main (void)
 {
   struct MHD_Daemon *daemon;
   enum MHD_FLAG flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_DEBUG
                         | MHD_USE_PEDANTIC_CHECKS;
+
+  add_route ("/movie", movie_handler);
+  add_route ("/movies", movies_handler);
 
   daemon = MHD_start_daemon (flags, PORT, NULL, NULL, &answer_connection, NULL,
                              MHD_OPTION_END);
