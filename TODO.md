@@ -1,2 +1,3 @@
 # TODO
-* define routes
+* design table schema for movies
+* connect to sqlite db
