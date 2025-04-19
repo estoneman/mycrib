@@ -1,12 +1,19 @@
 #ifndef _ROUTE_H
 #define _ROUTE_H
 
+#include <microhttpd.h>
+
 typedef struct {
-  const char *path;
-  char *(*handler)(void);
+  char *path;
+  char *(*handler)(struct MHD_Connection*);
 } Route;
 
-char * movie_handler (void);
-char * movies_handler (void);
+uint16_t small_crc16_8005 (const char *, size_t);
+void new_route (Route *, const char *, char *(*)(struct MHD_Connection*));
+void del_route (Route *, const char *);
+
+char * movie_handler (struct MHD_Connection*);
+char * movies_handler (struct MHD_Connection*);
+char * root_handler (struct MHD_Connection*);
 
 #endif
