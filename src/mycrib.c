@@ -15,24 +15,7 @@
 #define PORT 8888
 #define ARRAY_LEN(arr) (sizeof (arr) / sizeof ((arr)[0]))
 #define MAX_ROUTE_LEN 64
-
-const char *ROUTES[] = { "/movie", "/movies" };
-#define N_ROUTES ARRAY_LEN (ROUTES)
-
-Route routes[N_ROUTES];
-size_t curr_route = 0;
-
-int
-route_id (const char *req_url)
-{
-  for (size_t i = 0; i < N_ROUTES; ++i)
-    {
-      if (strcmp (ROUTES[i], req_url) == 0)
-        return i;
-    }
-
-  return -1;
-}
+#define ROUTE_TABLE_SIZE (2 << 15)
 
 void
 mem_free (void *mem)
@@ -77,12 +60,11 @@ send_response_free_callback (struct MHD_Connection *connection,
 }
 
 enum MHD_Result
-router (struct MHD_Connection *connection, const char *url)
+router (Route *routes, struct MHD_Connection *connection, const char *url)
 {
   const char *page;
   char *error, *response;
   size_t url_len, error_len;
-  int route;
 
   url_len = strlen (url);
   error_len = 1024 + (url_len > MAX_ROUTE_LEN ? MAX_ROUTE_LEN : url_len);
@@ -95,16 +77,19 @@ router (struct MHD_Connection *connection, const char *url)
                             MHD_HTTP_INTERNAL_SERVER_ERROR);
     }
 
-  if ((route = route_id (url)) == -1)
+  unsigned id = small_crc16_8005 (url, url_len);
+
+  if (!routes[id].path)
     {
-      page = "{\"error\": \"Invalid route: \"%s\"}";
-      snprintf (error, error_len, page, url);
+      page = "{\"error\": \"%s '%s'\"}";
+      snprintf (error, error_len, page,
+                MHD_get_reason_phrase_for (MHD_HTTP_NOT_FOUND), url);
 
       return send_response_free_callback (connection, error, strlen (error),
                                           MHD_HTTP_NOT_FOUND, &mem_free);
     }
 
-  response = routes[route].handler ();
+  response = routes[id].handler (connection);
 
   return send_response_free_callback (connection, response, strlen (response),
                                       MHD_HTTP_OK, &mem_free);
@@ -130,8 +115,9 @@ answer_connection (void *cls, struct MHD_Connection *connection,
   (void)version;
   (void)upload_data;
   (void)upload_data_size;
-  (void)cls;
   (void)req_cls;
+
+  static int ctx;
 
   if (dh_check_method (method) == MHD_NO)
     {
@@ -142,16 +128,15 @@ answer_connection (void *cls, struct MHD_Connection *connection,
                             MHD_HTTP_METHOD_NOT_ALLOWED);
     }
 
-  return router (connection, url);
-}
+  if (&ctx != *req_cls)
+    {
+      *req_cls = &ctx;
+      return MHD_YES;
+    }
+  *req_cls = NULL;
+  Route *routes = *(Route **)cls;
 
-void
-add_route (const char *path, char *(*handler) (void))
-{
-  assert (curr_route < N_ROUTES);
-
-  routes[curr_route].path = path;
-  routes[curr_route++].handler = handler;
+  return router (routes, connection, url);
 }
 
 int
@@ -159,13 +144,23 @@ main (void)
 {
   struct MHD_Daemon *daemon;
   enum MHD_FLAG flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_DEBUG
-                        | MHD_USE_PEDANTIC_CHECKS;
+                        | MHD_USE_PEDANTIC_CHECKS | MHD_USE_TCP_FASTOPEN
+                        | MHD_USE_ITC | MHD_USE_THREAD_PER_CONNECTION;
 
-  add_route ("/movie", movie_handler);
-  add_route ("/movies", movies_handler);
+  Route *routes;
 
-  daemon = MHD_start_daemon (flags, PORT, NULL, NULL, &answer_connection, NULL,
-                             MHD_OPTION_END);
+  if ((routes = (Route *)calloc (ROUTE_TABLE_SIZE, sizeof (Route))) == NULL)
+    {
+      fprintf (stderr, "[FATAL] Failed to allocate route table\n");
+      exit (1);
+    }
+
+  new_route (routes, "/", root_handler);
+  new_route (routes, "/movie", movie_handler);
+  new_route (routes, "/movies", movies_handler);
+
+  daemon = MHD_start_daemon (flags, PORT, NULL, NULL, &answer_connection,
+                             &routes, MHD_OPTION_END);
 
   if (NULL == daemon)
     {
@@ -175,6 +170,10 @@ main (void)
   getchar ();
 
   MHD_stop_daemon (daemon);
+
+  del_route (routes, "/");
+  del_route (routes, "/movie");
+  del_route (routes, "/movies");
 
   return EXIT_SUCCESS;
 }
