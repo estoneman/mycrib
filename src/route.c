@@ -75,7 +75,6 @@ root_handler (struct MHD_Connection *connection)
       return NULL;
     }
 
-
   strcpy (page, "{\"handlers\": [\"/\", \"/movie\", \"/movies\"]}");
 
   return page;
