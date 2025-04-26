@@ -1,0 +1,6 @@
+{
+    "name": "mycrib",
+    "adapter": "sqlite3",
+    "filename": "/home/estoneman/Programming/projects/mycrib/sql/mycrib.db",
+    "projectPaths": ["/home/estoneman/Programming/projects/mycrib/"]
+}
