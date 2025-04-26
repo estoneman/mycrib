@@ -1,9 +1,16 @@
+/* SUPPORTED API ROUTES
+ *   - Home page: GET /
+ *   - Get all movies: GET /movies
+ *   - Get movie: GET /movie?title=<title>&search_type=<type>
+ */
+
 #include <microhttpd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "route.h"
+#include "db.h"
 
 #define MAXPAGE 1024
 
@@ -50,7 +57,7 @@ new_route (Route *routes, const char *path,
 
   routes[id] = route;
 
-  fprintf (stderr, "[INFO] route '%s' added (id=%d)\n", route.path, id);
+  fprintf (stderr, "[INFO] new route: '%s'\n", route.path);
 }
 
 void
@@ -75,7 +82,7 @@ root_handler (struct MHD_Connection *connection)
       return NULL;
     }
 
-  strcpy (page, "{\"handlers\": [\"/\", \"/movie\", \"/movies\"]}");
+  strcpy (page, "{\"handlers\":[\"/\",\"/movie\",\"/movies\"]}");
 
   return page;
 }
@@ -92,7 +99,10 @@ movie_handler (struct MHD_Connection *connection)
       return NULL;
     }
 
-  strcpy (page, "{\"handler\": \"MOVIE HANDLER\"}");
+  strcpy (page, "{\"handler\":\"MOVIE HANDLER\"}");
+
+  if (0 != db_connect())
+    return page;
 
   return page;
 }
@@ -100,8 +110,17 @@ movie_handler (struct MHD_Connection *connection)
 char *
 movies_handler (struct MHD_Connection *connection)
 {
-  (void)connection;
   char *page;
+  const char *search_term, *search_by;
+
+  /* - Get movie: GET /movie?search_term=<term>&search_by=<column> */
+  search_term = MHD_lookup_connection_value (connection, MHD_GET_ARGUMENT_KIND,
+                                             "title");
+  search_by = MHD_lookup_connection_value (connection, MHD_GET_ARGUMENT_KIND,
+                                           "search_type");
+
+  fprintf (stderr, "[INFO] received search_term=%s, search_by=%s\n",
+           search_term, search_by);
 
   if ((page = malloc (MAXPAGE)) == NULL)
     {
@@ -109,7 +128,7 @@ movies_handler (struct MHD_Connection *connection)
       return NULL;
     }
 
-  strcpy (page, "{\"handler\": \"MOVIES HANDLER\"}");
+  strcpy (page, "{\"handler\":\"MOVIES HANDLER\"}");
 
   return page;
 }
