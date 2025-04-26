@@ -3,3 +3,5 @@
 /.cache
 compile_commands.json
 .clang-format
+/pki
+/sql/mycrib.db
