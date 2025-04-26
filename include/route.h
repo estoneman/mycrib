@@ -16,4 +16,4 @@ char * movie_handler (struct MHD_Connection*);
 char * movies_handler (struct MHD_Connection*);
 char * root_handler (struct MHD_Connection*);
 
-#endif
+#endif // _ROUTE_H
