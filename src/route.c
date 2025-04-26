@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "route.h"
 #include "db.h"
+#include "route.h"
 
 #define MAXPAGE 1024
 
@@ -101,7 +101,7 @@ movie_handler (struct MHD_Connection *connection)
 
   strcpy (page, "{\"handler\":\"MOVIE HANDLER\"}");
 
-  if (0 != db_connect())
+  if (0 != db_connect ())
     return page;
 
   return page;
