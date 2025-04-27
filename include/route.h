@@ -3,18 +3,17 @@
 
 #include <microhttpd.h>
 
-typedef struct
-{
+typedef struct {
   char *path;
-  char *(*handler) (struct MHD_Connection *);
+  char *(*handler)(struct MHD_Connection *);
 } Route;
 
-uint16_t small_crc16_8005 (const char *, size_t);
-void new_route (Route *, const char *, char *(*)(struct MHD_Connection *));
-void del_route (Route *, const char *);
+uint16_t small_crc16_8005(const char *, size_t);
+void new_route(Route *, const char *, char *(*)(struct MHD_Connection *));
+void del_route(Route *, const char *);
 
-char *movie_handler (struct MHD_Connection *);
-char *movies_handler (struct MHD_Connection *);
-char *root_handler (struct MHD_Connection *);
+char *movie_handler(struct MHD_Connection *);
+char *movies_handler(struct MHD_Connection *);
+char *root_handler(struct MHD_Connection *);
 
-#endif // _ROUTE_H
+#endif  // _ROUTE_H
