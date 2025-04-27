@@ -18,12 +18,22 @@
 static long
 get_file_size (const char *filename)
 {
-  struct stat stat_buf;
+  FILE *fp;
 
-  if (-1 == stat (filename, &stat_buf))
+  fp = fopen (filename, "rb");
+  if (fp)
+    {
+      long size;
+
+      if ((0 != fseek (fp, 0, SEEK_END)) || (-1 == (size = ftell (fp))))
+        size = 0;
+
+      fclose (fp);
+
+      return size;
+    }
+  else
     return 0;
-
-  return (long)stat_buf.st_size;
 }
 
 static char *
