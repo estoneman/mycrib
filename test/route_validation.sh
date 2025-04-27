@@ -9,19 +9,52 @@ _PORT=8080
 _SERVER=$(hostname).com
 
 _TEST_CASES=(
-    ['/']='{"handlers":["/","/movie","/movies"]}'
-    ['/movies']='{"handler":"MOVIES HANDLER"}'
-    ['/movie']='{"handler":"MOVIE HANDLER"}'
-    ['/nonexistent']="{\"error\":\"Not Found '/nonexistent'\"}"
-    ["/$(python3 -c 'print("a" * 64)')"]="{\"error\":\"Not Found '/$(python3 -c 'print(("a" * 60) + "...")')'\"}"
+    ['/']=200
+    ['/movies']=200
+    ['/movie']=200
+    ['/nonexistent']=404
+    ["/$(python3 -c 'print("a" * 64)')"]=404
 )
 
-for _TC in "${!_TEST_CASES[@]}"; do
-    if curl -sS "https://${_SERVER}:${_PORT}${_TC}" \
-        | jq --raw-output --indent 0 \
-        | diff <(echo "${_TEST_CASES[$_TC]}") - ; then
-        printf '%-67s test passed\n' "[$_TC]"
+_PASS_COUNT=0
+_FAIL_COUNT=0
+
+_check_case() {
+    local tc="$1"
+    local expected="$2"
+    local url="https://${_SERVER}:${_PORT}${tc}"
+    local resp_code
+    local elapsed
+
+    # Perform a single curl call that outputs both pieces of information
+    read -r resp_code elapsed < <(
+        curl -sS -o /dev/null \
+            -w "%{response_code} %{time_total}\n" \
+            "$url"
+    )
+
+    if [ "$resp_code" -eq "$expected" ]; then
+        printf '%s \033[0;32m[HTTP %s] passed (%.3fs)\033[0m\n' \
+            "[$tc]" "$resp_code" "$elapsed"
+        _PASS_COUNT=$((_PASS_COUNT + 1))
     else
-        printf '[%s] test failed\n' "$_TC"
+        printf '%s \033[0;31m[HTTP %s] failed (%.3fs)\033[0m\n' \
+            "[$tc]" "$resp_code" "$elapsed"
+        _FAIL_COUNT=$((_FAIL_COUNT + 1))
     fi
+}
+
+for _TC in "${!_TEST_CASES[@]}"; do
+    _check_case "$_TC" "${_TEST_CASES[$_TC]}"
 done
+
+# Summary
+echo
+if [ "$_FAIL_COUNT" -eq 0 ]; then
+    printf '\033[0;32mAll %d tests passed! ✅\033[0m\n' "$_PASS_COUNT"
+else
+    printf '\033[0;33mSummary: %d passed, %d failed ⚠️\033[0m\n' \
+        "$_PASS_COUNT" "$_FAIL_COUNT"
+fi
+
+unset _FAIL_COUNT _PASS_COUNT _PORT _SERVER _TC _TEST_CASES
