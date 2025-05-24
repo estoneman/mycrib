@@ -8,13 +8,12 @@
 
 #include <microhttpd.h>
 #include <sqlite3.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "db.h"
-
-#define MAXPAGE 1024
 
 uint16_t small_crc16_8005(const char *m, size_t n) {
   uint32_t crc = 0;
@@ -61,63 +60,4 @@ void del_route(Route *routes, const char *path) {
   unsigned int id = small_crc16_8005(path, path_len);
 
   if (routes[id].path) free(routes[id].path);
-}
-
-char *root_handler(struct MHD_Connection *connection) {
-  (void)connection;
-
-  char *page;
-  if ((page = malloc(MAXPAGE)) == NULL) {
-    fprintf(stderr, "[FATAL] ran out of memory\n");
-    return NULL;
-  }
-
-  strcpy(page, "{\"handlers\":[\"/\",\"/movie\",\"/movies\"]}");
-
-  return page;
-}
-
-char *movie_handler(struct MHD_Connection *connection) {
-  (void)connection;
-  char *page;
-  sqlite3 *db;
-
-  if ((page = malloc(MAXPAGE)) == NULL) {
-    fprintf(stderr, "[FATAL] ran out of memory\n");
-    return NULL;
-  }
-
-  if ((db = db_connect()) == NULL) {
-    strcpy(page, "{\"error\":\"Database failed to open\"}");
-    return page;
-  }
-
-  strcpy(page, "{\"handler\":\"MOVIE HANDLER\"}");
-
-  db_close(db);
-
-  return page;
-}
-
-char *movies_handler(struct MHD_Connection *connection) {
-  char *page;
-  const char *search_term, *search_by;
-
-  /* - Get movie: GET /movie?search_term=<term>&search_by=<column> */
-  search_term =
-      MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "title");
-  search_by = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND,
-                                          "search_type");
-
-  fprintf(stderr, "[INFO] received search_term=%s, search_by=%s\n", search_term,
-          search_by);
-
-  if ((page = malloc(MAXPAGE)) == NULL) {
-    fprintf(stderr, "[FATAL] ran out of memory\n");
-    return NULL;
-  }
-
-  strcpy(page, "{\"handler\":\"MOVIES HANDLER\"}");
-
-  return page;
 }
