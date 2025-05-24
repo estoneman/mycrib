@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "handler.h"
 #include "route.h"
 
 #define PORT 8080
@@ -13,7 +14,7 @@
 #define ROUTE_TABLE_SIZE (2 << 15)
 
 #define SERVERKEYFILE "../pki/mycrib.key"
-#define SERVERCERTFILE "/etc/pki/ca-trust/source/anchors/mycrib.pem"
+#define SERVERCERTFILE "../pki/mycrib.pem"
 
 static long get_file_size(const char *filename) {
   FILE *fp;
@@ -27,8 +28,8 @@ static long get_file_size(const char *filename) {
     fclose(fp);
 
     return size;
-  } else
-    return 0;
+  }
+  return 0;
 }
 
 static char *load_file(const char *filename) {
@@ -201,8 +202,6 @@ int main(void) {
                        MHD_OPTION_HTTPS_MEM_CERT, cert_pem, MHD_OPTION_END);
 
   if (NULL == daemon) {
-    printf("%s\n", cert_pem);
-
     free(key_pem);
     free(cert_pem);
 
