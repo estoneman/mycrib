@@ -1,4 +1,3 @@
-// #include <microhttpd.h>
 #include "handler.h"
 
 #include <jansson.h>

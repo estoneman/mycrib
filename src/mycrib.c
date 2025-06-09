@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <jansson.h>
 #include <microhttpd.h>
 #include <stdio.h>
 #include <stdlib.h>
