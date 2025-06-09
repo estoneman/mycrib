@@ -26,7 +26,7 @@ set(C_SOURCE
     ./src/util/mhd.c
     ./src/util/util.c)
 
-if(WITHOUT_MYCRIB_TEST)
+if(MYCRIB_TEST)
     set(C_SOURCE_TEST ./test/test_util.c ./src/util/util.c)
     add_executable(test_util ${C_SOURCE_TEST})
     target_include_directories(test_util PRIVATE include/)
