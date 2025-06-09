@@ -25,6 +25,13 @@ set(C_SOURCE
     ./src/handler.c
     ./src/util/mhd.c
     ./src/util/util.c)
+
+if(WITHOUT_MYCRIB_TEST)
+    set(C_SOURCE_TEST ./test/test_util.c ./src/util/util.c)
+    add_executable(test_util ${C_SOURCE_TEST})
+    target_include_directories(test_util PRIVATE include/)
+endif()
+
 add_executable(mycrib ${C_SOURCE})
 target_include_directories(mycrib PRIVATE include/)
 target_include_directories(mycrib PRIVATE ${MICROHTTPD_INCLUDE_DIRS})
