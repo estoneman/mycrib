@@ -12,9 +12,7 @@
 #define JSON_ROOT_FMT JSON_ERROR_FMT
 #define JSON_RESULT_FMT "{s:i,s:O}"
 
-json_t *root_handler(struct MHD_Connection *connection) {
-  (void)connection;
-
+json_t *root_handler(void) {
   json_t *result;
 
   result = json_pack(JSON_ROOT_FMT, "status", MHD_HTTP_OK, "result",
@@ -77,7 +75,10 @@ char *movie_handler(struct MHD_Connection *connection) {
   return json_dumps(result, 0);
 }
 
-json_t *movies_handler(struct MHD_Connection *connection) {
+json_t *movies_handler(struct MHD_Connection *connection, const char *method) {
+  // TODO: dispatch based off http method
+  (void)method;
+
   const char *sql, *search_type, *search_pattern;
   char *search_pattern_like;
   int rc;
