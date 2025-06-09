@@ -26,7 +26,7 @@ void new_route(Route *routes, const char *path, HandlerType type,
 
   size_t path_len = strlen(path);
   unsigned int id = small_crc16_8005(path, path_len);
-  if ((route.path = (char *)malloc(path_len + 1)) == NULL) {
+  if (!(route.path = (char *)malloc(path_len + 1))) {
     fprintf(stderr, "[ERROR] failed to allocate new route, OOM\n");
     exit(1);
   }
@@ -49,9 +49,8 @@ void del_route(Route *routes, const char *path) {
   if (routes[id].path) free(routes[id].path);
 }
 
-enum MHD_Result router(Route *routes, struct MHD_Connection *connection,
-                       const char *method, const char *url) {
-  (void)method;
+enum MHD_Result router(Route *routes, const char *url,
+                       RequestContext *req_ctx) {
   char *response;
   size_t url_len;
   json_t *result, *status_json;
@@ -65,16 +64,17 @@ enum MHD_Result router(Route *routes, struct MHD_Connection *connection,
   if (url_len > MAX_ROUTE_LEN) {
     required_len = snprintf(NULL, 0, ERR_TEMPLATE, MHD_HTTP_BAD_REQUEST,
                             MHD_get_reason_phrase_for(MHD_HTTP_BAD_REQUEST));
-    if ((error = malloc(required_len + 1)) == NULL) {
+    if (!(error = malloc(required_len + 1))) {
       return send_response(
-          connection, MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
+          req_ctx->connection,
+          MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
           MHD_get_reason_phrase_len_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
           MHD_HTTP_INTERNAL_SERVER_ERROR);
     }
     snprintf(error, required_len + 1, ERR_TEMPLATE, MHD_HTTP_BAD_REQUEST,
              MHD_get_reason_phrase_for(MHD_HTTP_BAD_REQUEST));
 
-    return send_response_free_callback(connection, error, required_len,
+    return send_response_free_callback(req_ctx->connection, error, required_len,
                                        MHD_HTTP_BAD_REQUEST, &mem_free);
   }
 
@@ -83,22 +83,23 @@ enum MHD_Result router(Route *routes, struct MHD_Connection *connection,
   if (!routes[id].path) {
     required_len = snprintf(NULL, 0, ERR_TEMPLATE, MHD_HTTP_NOT_FOUND,
                             MHD_get_reason_phrase_for(MHD_HTTP_NOT_FOUND));
-    if ((error = malloc(required_len + 1)) == NULL) {
+    if (!(error = malloc(required_len + 1))) {
       return send_response(
-          connection, MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
+          req_ctx->connection,
+          MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
           MHD_get_reason_phrase_len_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
           MHD_HTTP_INTERNAL_SERVER_ERROR);
     }
     snprintf(error, required_len + 1, ERR_TEMPLATE, MHD_HTTP_NOT_FOUND,
              MHD_get_reason_phrase_for(MHD_HTTP_NOT_FOUND));
 
-    return send_response_free_callback(connection, error, required_len,
+    return send_response_free_callback(req_ctx->connection, error, required_len,
                                        MHD_HTTP_NOT_FOUND, &mem_free);
   }
 
   switch (routes[id].type) {
     case HANDLER_ARG:
-      result = routes[id].handler.handler_arg(connection, method);
+      result = routes[id].handler.handler_arg(req_ctx);
       break;
     case HANDLER_VOID:
       result = routes[id].handler.handler_void();
@@ -112,19 +113,21 @@ enum MHD_Result router(Route *routes, struct MHD_Connection *connection,
   status_json = json_object_get(result, "status");
   if (!status_json)
     return send_response(
-        connection, MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
+        req_ctx->connection,
+        MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
         MHD_get_reason_phrase_len_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
         MHD_HTTP_INTERNAL_SERVER_ERROR);
 
   status = json_integer_value(status_json);
   if (status == 0)
     return send_response(
-        connection, MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
+        req_ctx->connection,
+        MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
         MHD_get_reason_phrase_len_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
         MHD_HTTP_INTERNAL_SERVER_ERROR);
 
   json_decref(result);
 
-  return send_response_free_callback(connection, response, strlen(response),
-                                     status, &mem_free);
+  return send_response_free_callback(req_ctx->connection, response,
+                                     strlen(response), status, &mem_free);
 }
