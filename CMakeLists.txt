@@ -5,6 +5,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_C_STANDARD 11)
 add_compile_options(-Wall -Wextra -Werror -pedantic)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+set(CMAKE_C_FLAGS_DEBUG "-g -O0 -fsanitize=address")
+set(CMAKE_C_FLAGS_RELEASE "-O2")
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MICROHTTPD REQUIRED libmicrohttpd)
