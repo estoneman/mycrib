@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 
 #include "handler.h"
 #include "route.h"
@@ -22,7 +21,6 @@ enum MHD_Result answer_connection(void *cls, struct MHD_Connection *connection,
                                   const char *url, const char *method,
                                   const char *version, const char *upload_data,
                                   size_t *upload_data_size, void **req_cls) {
-  (void)method;
   (void)version;
   (void)upload_data;
   (void)upload_data_size;
@@ -56,7 +54,7 @@ enum MHD_Result answer_connection(void *cls, struct MHD_Connection *connection,
   *req_cls = NULL;
   Route *routes = *(Route **)cls;
 
-  return router(routes, connection, url);
+  return router(routes, connection, method, url);
 }
 
 int main(void) {
@@ -78,8 +76,9 @@ int main(void) {
     exit(1);
   }
 
-  new_route(routes, "/", root_handler);
-  new_route(routes, "/movies", movies_handler);
+  new_route(routes, "/", HANDLER_VOID, (Handler){.handler_void = root_handler});
+  new_route(routes, "/movies", HANDLER_ARG,
+            (Handler){.handler_arg = movies_handler});
 
   flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_THREAD_PER_CONNECTION |
           MHD_USE_ITC | MHD_USE_TCP_FASTOPEN | MHD_USE_TLS |
