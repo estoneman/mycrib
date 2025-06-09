@@ -9,7 +9,6 @@ typedef struct {
   json_t *(*handler)(struct MHD_Connection *);
 } Route;
 
-uint16_t small_crc16_8005(const char *m, size_t n);
 void new_route(Route *routes, const char *path,
                json_t *(*handler)(struct MHD_Connection *));
 void del_route(Route *routes, const char *path);

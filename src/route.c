@@ -7,7 +7,6 @@
 #include "route.h"
 
 #include <microhttpd.h>
-#include <sqlite3.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,28 +14,10 @@
 
 #include "db.h"
 #include "util/mhd.h"
+#include "util/util.h"
 
 #define MAX_ROUTE_LEN 64
 #define ERR_TEMPLATE "{\"status\": %i, \"result\": \"%s\"}"
-
-uint16_t small_crc16_8005(const char *m, size_t n) {
-  uint32_t crc = 0;
-
-  for (size_t i = 0; i < n; i++) {
-    uint8_t d = *(m++);
-    uint32_t x = ((crc ^ d) & 0xff) << 8;
-    uint32_t y = x;
-
-    x ^= x << 1;
-    x ^= x << 2;
-    x ^= x << 4;
-
-    x = (x & 0x8000) | (y >> 1);
-
-    crc = (crc >> 8) ^ (x >> 15) ^ (x >> 1) ^ x;
-  }
-  return crc;
-}
 
 void new_route(Route *routes, const char *path,
                json_t *(*handler)(struct MHD_Connection *)) {
