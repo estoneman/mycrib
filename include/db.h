@@ -12,6 +12,8 @@ sqlite3 *db_connect(void);
 int db_close(sqlite3 *);
 
 /**
+ * @deprecated
+ *
  * Execute a query and return its results, if any
  *
  * @param db handle to the sqlite database
@@ -19,7 +21,14 @@ int db_close(sqlite3 *);
  * @param schema schema to use when marshalling database results
  * @return JSON array of result sets
  */
-json_t *db_query_exec(sqlite3 *, sqlite3_stmt *, ResultSetType);
+json_t *db_query_exec(sqlite3 *db, sqlite3_stmt *pp_stmt, ResultSetType rs);
+
+/**
+ * @param db handle to the sqlite database
+ * @param pp_stmt sqlite prepared statement to execute against db
+ * @return JSON array of result sets
+ */
+json_t *db_exec_movie(sqlite3 *db, sqlite3_stmt *pp_stmt);
 
 /**
  * Builds an sqlite3_stmt to be used by database query executor.
