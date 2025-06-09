@@ -26,7 +26,6 @@ _check_case() {
     local resp_code
     local elapsed
 
-    # Perform a single curl call that outputs both pieces of information
     read -r resp_code elapsed < <(
         curl -sS -o /dev/null \
             -w "%{response_code} %{time_total}\n" \
@@ -48,7 +47,6 @@ for _TC in "${!_TEST_CASES[@]}"; do
     _check_case "$_TC" "${_TEST_CASES[$_TC]}"
 done
 
-# Summary
 echo
 if [ "$_FAIL_COUNT" -eq 0 ]; then
     printf '\033[0;32mAll %d tests passed! ✅\033[0m\n' "$_PASS_COUNT"
