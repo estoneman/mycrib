@@ -43,16 +43,20 @@ _check_case() {
     fi
 }
 
-for _TC in "${!_TEST_CASES[@]}"; do
-    _check_case "$_TC" "${_TEST_CASES[$_TC]}"
-done
+_main() {
+    for _TC in "${!_TEST_CASES[@]}"; do
+        _check_case "$_TC" "${_TEST_CASES[$_TC]}"
+    done
 
-echo
-if [ "$_FAIL_COUNT" -eq 0 ]; then
-    printf '\033[0;32mAll %d tests passed! ✅\033[0m\n' "$_PASS_COUNT"
-else
-    printf '\033[0;33mSummary: %d passed, %d failed ⚠️\033[0m\n' \
-        "$_PASS_COUNT" "$_FAIL_COUNT"
-fi
+    echo
+    if [ "$_FAIL_COUNT" -eq 0 ]; then
+        printf '\033[0;32mAll %d tests passed! ✅\033[0m\n' "$_PASS_COUNT"
+    else
+        printf '\033[0;33mSummary: %d passed, %d failed ⚠️\033[0m\n' \
+            "$_PASS_COUNT" "$_FAIL_COUNT"
+    fi
+}
+
+_main
 
 unset _FAIL_COUNT _PASS_COUNT _PORT _SERVER _TC _TEST_CASES
