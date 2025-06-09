@@ -1,5 +1,6 @@
 #include "handler.h"
 
+#include <assert.h>
 #include <jansson.h>
 #include <microhttpd.h>
 #include <stdio.h>
@@ -7,6 +8,7 @@
 #include <string.h>
 
 #include "db.h"
+#include "route.h"
 
 #define JSON_ERROR_FMT "{s:i,s:s}"
 #define JSON_ROOT_FMT JSON_ERROR_FMT
@@ -21,64 +23,18 @@ json_t *root_handler(void) {
   return result;
 }
 
-// @deprecated
-char *movie_handler(struct MHD_Connection *connection) {
-  const char *sql, *title;
-  int rc;
-  sqlite3 *db;
-  sqlite3_stmt *pp_stmt;
-  json_t *record_set, *result, *err;
+json_t *movies_handler(void *req_ctx) {
+  RequestContext *ctx = req_ctx;
 
-  title =
-      MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "title");
-  if (!title) {
-    err = json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_BAD_REQUEST, "error",
-                    "Title was not provided");
-
-    return json_dumps(err, 0);
+  if (strncmp(ctx->method, MHD_HTTP_METHOD_GET, strlen(MHD_HTTP_METHOD_GET)) ==
+      0) {
+    return movies_get_handler(ctx->connection);
+  } else {
+    assert(0 && "UNIMPLEMENTED");
   }
-
-  if ((db = db_connect()) == NULL) {
-    err = json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_INTERNAL_SERVER_ERROR,
-                    "error", "Internal Server Error");
-
-    return json_dumps(err, 0);
-  }
-
-  sql = "SELECT * FROM movies WHERE title LIKE ?;";
-  if (build_stmt_va(&pp_stmt, db, sql, 1, title) == -1) {
-    err = json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_INTERNAL_SERVER_ERROR,
-                    "error", "Internal Server Error");
-
-    return json_dumps(err, 0);
-  }
-
-  record_set = db_query_exec(db, pp_stmt, TYPE_MOVIE);
-
-  if (!record_set) {
-    err = json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_INTERNAL_SERVER_ERROR,
-                    "error", "Internal Server Error");
-
-    return json_dumps(err, 0);
-  }
-
-  if ((rc = db_close(db)) != 0) {
-    err = json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_INTERNAL_SERVER_ERROR,
-                    "error", "Internal Server Error");
-
-    return json_dumps(err, 0);
-  }
-
-  result = json_pack("{s:i,s:O}", "status", MHD_HTTP_OK, "result", record_set);
-  json_decref(record_set);
-
-  return json_dumps(result, 0);
 }
 
-json_t *movies_handler(struct MHD_Connection *connection, const char *method) {
-  // TODO: dispatch based off http method
-  (void)method;
-
+json_t *movies_get_handler(struct MHD_Connection *connection) {
   const char *sql, *search_type, *search_pattern;
   char *search_pattern_like;
   int rc;
@@ -105,7 +61,7 @@ json_t *movies_handler(struct MHD_Connection *connection, const char *method) {
     return err;
   }
 
-  if ((db = db_connect()) == NULL) {
+  if (!(db = db_connect())) {
     err = json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_INTERNAL_SERVER_ERROR,
                     "error", "Internal Server Error");
 
@@ -117,7 +73,7 @@ json_t *movies_handler(struct MHD_Connection *connection, const char *method) {
   if (strncmp(search_type, "contains", strlen("contains")) == 0) {
     len_search_pattern_like = len_search_pattern + 2;  // 2 '%'
 
-    if ((search_pattern_like = malloc(len_search_pattern_like + 1)) == NULL) {
+    if (!(search_pattern_like = malloc(len_search_pattern_like + 1))) {
       err = json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_INTERNAL_SERVER_ERROR,
                       "error", "Internal Server Error");
 
@@ -139,7 +95,7 @@ json_t *movies_handler(struct MHD_Connection *connection, const char *method) {
   } else if (strncmp(search_type, "endswith", strlen("endswith")) == 0) {
     len_search_pattern_like = len_search_pattern + 1;  // 1 '%'
 
-    if ((search_pattern_like = malloc(len_search_pattern_like + 1)) == NULL) {
+    if (!(search_pattern_like = malloc(len_search_pattern_like + 1))) {
       err = json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_INTERNAL_SERVER_ERROR,
                       "error", "Internal Server Error");
 
@@ -161,7 +117,7 @@ json_t *movies_handler(struct MHD_Connection *connection, const char *method) {
   } else if (strncmp(search_type, "startswith", strlen("startswith")) == 0) {
     len_search_pattern_like = len_search_pattern + 1;  // 1 '%'
 
-    if ((search_pattern_like = malloc(len_search_pattern_like + 1)) == NULL) {
+    if (!(search_pattern_like = malloc(len_search_pattern_like + 1))) {
       err = json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_INTERNAL_SERVER_ERROR,
                       "error", "Internal Server Error");
 
