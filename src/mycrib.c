@@ -27,14 +27,15 @@ enum MHD_Result answer_connection(void *cls, struct MHD_Connection *connection,
   (void)req_cls;
 
   static int ctx;
-
+  Route *routes;
   int required_len;
   char *error;
+
   if (dh_check_method(method) == MHD_NO) {
     required_len =
         snprintf(NULL, 0, ERR_TEMPLATE, MHD_HTTP_METHOD_NOT_ALLOWED,
                  MHD_get_reason_phrase_for(MHD_HTTP_METHOD_NOT_ALLOWED));
-    if ((error = malloc(required_len + 1)) == NULL) {
+    if (!(error = malloc(required_len + 1))) {
       return send_response(
           connection, MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
           MHD_get_reason_phrase_len_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
@@ -52,9 +53,14 @@ enum MHD_Result answer_connection(void *cls, struct MHD_Connection *connection,
     return MHD_YES;
   }
   *req_cls = NULL;
-  Route *routes = *(Route **)cls;
+  routes = *(Route **)cls;
 
-  return router(routes, connection, method, url);
+  RequestContext req_ctx = {.connection = connection,
+                            .method = method,
+                            .upload_data = upload_data,
+                            .upload_data_size = upload_data_size};
+
+  return router(routes, url, &req_ctx);
 }
 
 int main(void) {
@@ -66,7 +72,7 @@ int main(void) {
   cert_pem = load_file(SERVERCERTFILE);
   key_pem = load_file(SERVERKEYFILE);
 
-  if ((key_pem == NULL) || (cert_pem == NULL)) {
+  if ((!key_pem) || (!cert_pem)) {
     printf("the key/certificate files could not be read.\n");
     return EXIT_FAILURE;
   }
@@ -88,7 +94,7 @@ int main(void) {
                        MHD_OPTION_HTTPS_MEM_KEY, key_pem,
                        MHD_OPTION_HTTPS_MEM_CERT, cert_pem, MHD_OPTION_END);
 
-  if (NULL == daemon) {
+  if (!daemon) {
     free(key_pem);
     free(cert_pem);
 
