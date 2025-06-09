@@ -45,3 +45,22 @@ char *load_file(const char *filename) {
   fclose(fp);
   return buffer;
 }
+
+uint16_t small_crc16_8005(const char *m, size_t n) {
+  uint32_t crc = 0;
+
+  for (size_t i = 0; i < n; i++) {
+    uint8_t d = *(m++);
+    uint32_t x = ((crc ^ d) & 0xff) << 8;
+    uint32_t y = x;
+
+    x ^= x << 1;
+    x ^= x << 2;
+    x ^= x << 4;
+
+    x = (x & 0x8000) | (y >> 1);
+
+    crc = (crc >> 8) ^ (x >> 15) ^ (x >> 1) ^ x;
+  }
+  return crc;
+}
