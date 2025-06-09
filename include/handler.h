@@ -4,7 +4,7 @@
 #include <jansson.h>
 #include <microhttpd.h>
 
-json_t *root_handler(struct MHD_Connection *connection);
+json_t *root_handler(void);
 
 /**
  * @deprecated
@@ -101,6 +101,6 @@ char *movie_handler(struct MHD_Connection *connection);
  *      "error": "<error message>"
  *    }
  */
-json_t *movies_handler(struct MHD_Connection *connection);
+json_t *movies_handler(struct MHD_Connection *connection, const char *method);
 
 #endif  // _HANDLER_H
