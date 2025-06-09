@@ -35,7 +35,7 @@ uint16_t small_crc16_8005(const char *m, size_t n) {
 }
 
 void new_route(Route *routes, const char *path,
-               char *(*handler)(struct MHD_Connection *)) {
+               json_t *(*handler)(struct MHD_Connection *)) {
   Route route;
 
   size_t path_len = strlen(path);
@@ -45,7 +45,7 @@ void new_route(Route *routes, const char *path,
     exit(1);
   }
 
-  strncpy(route.path, path, path_len);
+  snprintf(route.path, path_len, "%s", path);
   route.path[path_len] = '\0';
 
   route.handler = handler;
