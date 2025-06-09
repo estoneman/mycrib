@@ -75,6 +75,35 @@ int db_close(sqlite3 *db) {
   return 0;
 }
 
+json_t *db_exec_movie(sqlite3 *db, sqlite3_stmt *pp_stmt) {
+  int rc;
+
+  json_t *record_set = json_array();
+  json_t *record;
+
+  while ((rc = sqlite3_step(pp_stmt)) == SQLITE_ROW) {
+    record = json_pack("{s:s,s:s,s:i,s:i,s:s,s:f,s:s,s:s,s:f}", "title",
+                       sqlite3_column_text(pp_stmt, 1), "genre",
+                       sqlite3_column_text(pp_stmt, 2), "year",
+                       sqlite3_column_int(pp_stmt, 3), "length",
+                       sqlite3_column_int(pp_stmt, 4), "poster_url",
+                       sqlite3_column_text(pp_stmt, 5), "rating_family",
+                       sqlite3_column_double(pp_stmt, 6), "cast",
+                       sqlite3_column_text(pp_stmt, 7), "director",
+                       sqlite3_column_text(pp_stmt, 8), "rating_imdb",
+                       sqlite3_column_double(pp_stmt, 9));
+    if (!record || json_array_append_new(record_set, record)) continue;
+  }
+
+  if (rc == SQLITE_ERROR || rc == SQLITE_MISUSE) {
+    fprintf(stderr, "[ERROR]: %s\n", sqlite3_errmsg(db));
+  }
+
+  sqlite3_finalize(pp_stmt);
+
+  return record_set;
+}
+
 json_t *db_query_exec(sqlite3 *db, sqlite3_stmt *pp_stmt,
                       ResultSetType rs_type) {
   int rc;
