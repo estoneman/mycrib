@@ -10,10 +10,10 @@ _SERVER=$(hostname).com
 
 _TEST_CASES=(
     ['/']=200
-    ['/movies']=200
-    ['/movie']=200
+    ['/movies']=400
     ['/nonexistent']=404
-    ["/$(python3 -c 'print("a" * 64)')"]=404
+    ["/$(python3 -c 'print("a" * 64)')"]=400
+    ["/movies?search_pattern=The&search_type=startswith"]=200
 )
 
 _PASS_COUNT=0
