@@ -6,6 +6,7 @@
 
 #include "route.h"
 
+#include <assert.h>
 #include <microhttpd.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -19,8 +20,8 @@
 #define MAX_ROUTE_LEN 64
 #define ERR_TEMPLATE "{\"status\": %i, \"result\": \"%s\"}"
 
-void new_route(Route *routes, const char *path,
-               json_t *(*handler)(struct MHD_Connection *)) {
+void new_route(Route *routes, const char *path, HandlerType type,
+               Handler handler) {
   Route route;
 
   size_t path_len = strlen(path);
@@ -30,9 +31,10 @@ void new_route(Route *routes, const char *path,
     exit(1);
   }
 
-  snprintf(route.path, path_len, "%s", path);
+  snprintf(route.path, path_len + 1, "%s", path);
   route.path[path_len] = '\0';
 
+  route.type = type;
   route.handler = handler;
 
   routes[id] = route;
@@ -48,7 +50,8 @@ void del_route(Route *routes, const char *path) {
 }
 
 enum MHD_Result router(Route *routes, struct MHD_Connection *connection,
-                       const char *url) {
+                       const char *method, const char *url) {
+  (void)method;
   char *response;
   size_t url_len;
   json_t *result, *status_json;
@@ -93,7 +96,16 @@ enum MHD_Result router(Route *routes, struct MHD_Connection *connection,
                                        MHD_HTTP_NOT_FOUND, &mem_free);
   }
 
-  result = routes[id].handler(connection);
+  switch (routes[id].type) {
+    case HANDLER_ARG:
+      result = routes[id].handler.handler_arg(connection, method);
+      break;
+    case HANDLER_VOID:
+      result = routes[id].handler.handler_void();
+      break;
+    default:
+      assert(0 && "UNIMPLEMENTED");
+  }
 
   response = json_dumps(result, 0);
 
