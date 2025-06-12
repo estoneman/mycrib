@@ -55,12 +55,14 @@ enum MHD_Result answer_connection(void *cls, struct MHD_Connection *connection,
   *req_cls = NULL;
   routes = *(Route **)cls;
 
+  // MAYBE TODO: pass different types of contexts based on request
   RequestContext req_ctx = {.connection = connection,
+                            .url = url,
                             .method = method,
                             .upload_data = upload_data,
                             .upload_data_size = upload_data_size};
 
-  return router(routes, url, &req_ctx);
+  return router(routes, &req_ctx);
 }
 
 int main(void) {
