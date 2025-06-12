@@ -10,7 +10,8 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-set(CMAKE_C_FLAGS_DEBUG "-g -O0 -fsanitize=address")
+set(CMAKE_C_FLAGS_DEBUG
+    "-g -O0 -fsanitize=address -fsanitize=pointer-subtract -fsanitize=undefined")
 set(CMAKE_C_FLAGS_RELEASE "-O2")
 
 find_package(PkgConfig REQUIRED)
