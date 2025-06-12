@@ -6,7 +6,7 @@ declare -A _TEST_CASES
 declare -i _PORT
 
 _PORT=8080
-_SERVER=$(hostname).com
+_SERVER=fedora.com
 
 _TEST_CASES=(
     ['/']=200
