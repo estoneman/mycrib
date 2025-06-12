@@ -3,32 +3,39 @@
 
 #include <jansson.h>
 #include <sqlite3.h>
-#include <stddef.h>
-#include <stdlib.h>
-
-typedef enum { TYPE_MOVIE, TYPE_BOOK, TYPE_SONG } ResultSetType;
-
-sqlite3 *db_connect(void);
-int db_close(sqlite3 *);
 
 /**
- * @deprecated
+ * Open connection sqlite3 database
  *
- * Execute a query and return its results, if any
- *
- * @param db handle to the sqlite database
- * @param pp_stmt sqlite prepared statement
- * @param schema schema to use when marshalling database results
- * @return JSON array of result sets
+ * @return pointer to sqlite3 database, NULL on error
  */
-json_t *db_query_exec(sqlite3 *db, sqlite3_stmt *pp_stmt, ResultSetType rs);
+sqlite3 *db_connect(void);
 
 /**
+ * Close database handle
+ *
+ * @param db handle to sqlite3 database
+ * @return 0 on success, -1 on error
+ */
+int db_close(sqlite3 *db);
+
+/**
+ * Returns records of movies that match the given search pattern and type
+ *
+ * @param connection object that stores data to manipulate the sql query
+ * @return JSON-formatted response, regardless if the operation succeeded or not
+ *
+ */
+json_t *db_read_movies(const char *search_pattern, const char *search_type);
+
+/**
+ * Run prepared statement against database
+ *
  * @param db handle to the sqlite database
  * @param pp_stmt sqlite prepared statement to execute against db
  * @return JSON array of result sets
  */
-json_t *db_exec_movie(sqlite3 *db, sqlite3_stmt *pp_stmt);
+json_t *db_exec_read_movies(sqlite3 *db, sqlite3_stmt *pp_stmt);
 
 /**
  * Builds an sqlite3_stmt to be used by database query executor.
