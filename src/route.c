@@ -49,8 +49,7 @@ void del_route(Route *routes, const char *path) {
   if (routes[id].path) free(routes[id].path);
 }
 
-enum MHD_Result router(Route *routes, const char *url,
-                       RequestContext *req_ctx) {
+enum MHD_Result router(Route *routes, const RequestContext *req_ctx) {
   char *response;
   size_t url_len;
   json_t *result, *status_json;
@@ -60,7 +59,7 @@ enum MHD_Result router(Route *routes, const char *url,
   char *error;
   int required_len;
 
-  url_len = strlen(url);
+  url_len = strlen(req_ctx->url);
   if (url_len > MAX_ROUTE_LEN) {
     required_len = snprintf(NULL, 0, ERR_TEMPLATE, MHD_HTTP_BAD_REQUEST,
                             MHD_get_reason_phrase_for(MHD_HTTP_BAD_REQUEST));
@@ -78,7 +77,7 @@ enum MHD_Result router(Route *routes, const char *url,
                                        MHD_HTTP_BAD_REQUEST, &mem_free);
   }
 
-  id = small_crc16_8005(url, url_len);
+  id = small_crc16_8005(req_ctx->url, url_len);
 
   if (!routes[id].path) {
     required_len = snprintf(NULL, 0, ERR_TEMPLATE, MHD_HTTP_NOT_FOUND,
