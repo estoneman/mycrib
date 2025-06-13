@@ -13,15 +13,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "db.h"
 #include "util/mhd.h"
 #include "util/util.h"
 
 #define MAX_ROUTE_LEN 64
 #define ERR_TEMPLATE "{\"status\": %i, \"result\": \"%s\"}"
 
-void new_route(Route *routes, const char *path, HandlerType type,
-               Handler handler) {
+void new_route(Route *routes, const char *path, Handler handler) {
   Route route;
 
   size_t path_len = strlen(path);
@@ -34,7 +32,6 @@ void new_route(Route *routes, const char *path, HandlerType type,
   snprintf(route.path, path_len + 1, "%s", path);
   route.path[path_len] = '\0';
 
-  route.type = type;
   route.handler = handler;
 
   routes[id] = route;
@@ -96,16 +93,7 @@ enum MHD_Result router(Route *routes, const RequestContext *req_ctx) {
                                        MHD_HTTP_NOT_FOUND, &mem_free);
   }
 
-  switch (routes[id].type) {
-    case HANDLER_ARG:
-      result = routes[id].handler.handler_arg(req_ctx);
-      break;
-    case HANDLER_VOID:
-      result = routes[id].handler.handler_void();
-      break;
-    default:
-      assert(0 && "UNIMPLEMENTED");
-  }
+  result = routes[id].handler(req_ctx);
 
   response = json_dumps(result, 0);
 
