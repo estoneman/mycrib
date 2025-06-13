@@ -37,7 +37,9 @@ int build_stmt_va(sqlite3_stmt **pp_stmt, sqlite3 *db, const char *query,
 
     if ((rc = sqlite3_bind_text(*pp_stmt, i + 1, field, strlen(field),
                                 SQLITE_TRANSIENT)) != SQLITE_OK) {
-      fprintf(stderr, "[ERROR] failed to bind query parameter to SQL query\n");
+      fprintf(stderr,
+              "[ERROR] failed to bind query parameter to SQL query: %s\n",
+              sqlite3_errmsg(db));
       return -1;
     }
   }
@@ -83,13 +85,12 @@ int db_close(sqlite3 *db) {
   return 0;
 }
 
-json_t *db_read_movies(const char *search_pattern, const char *search_type) {
-  size_t len_search_pattern;
-  size_t len_search_pattern_like;
-  char *search_pattern_like;
-  int rc;
+json_t *db_read_movies(const char *search_pattern, const char *search_type,
+                       const char *search_by) {
+  size_t len_search_pattern, len_search_pattern_like;
+  char *search_pattern_like, *sql_query_fmt, *sql_query;
   json_t *record_set, *result;
-  const char *sql;
+  int rc, sql_query_len;
   sqlite3 *db;
   sqlite3_stmt *pp_stmt;
 
@@ -106,10 +107,21 @@ json_t *db_read_movies(const char *search_pattern, const char *search_type) {
     snprintf(search_pattern_like, len_search_pattern_like + 1, "%%%s%%",
              search_pattern);
 
-    sql = "SELECT * FROM movies WHERE title LIKE ?;";
-    if (build_stmt_va(&pp_stmt, db, sql, 1, search_pattern_like) == -1)
+    sql_query_fmt = "SELECT * FROM movies WHERE %s LIKE ?;";
+    sql_query_len = snprintf(NULL, 0, sql_query_fmt, search_by);
+    if (!(sql_query = malloc(sql_query_len + 1))) {
+      free(search_pattern_like);
       return NULL;
+    }
+    snprintf(sql_query, sql_query_len + 1, sql_query_fmt, search_by);
 
+    if (build_stmt_va(&pp_stmt, db, sql_query, 1, search_pattern_like) == -1) {
+      free(sql_query);
+      free(search_pattern_like);
+      return NULL;
+    }
+
+    free(sql_query);
     free(search_pattern_like);
   } else if (strncmp(search_type, "endswith", strlen("endswith")) == 0) {
     len_search_pattern_like = len_search_pattern + 1;  // 1 '%'
@@ -120,10 +132,21 @@ json_t *db_read_movies(const char *search_pattern, const char *search_type) {
     snprintf(search_pattern_like, len_search_pattern_like + 1, "%%%s",
              search_pattern);
 
-    sql = "SELECT * FROM movies WHERE title LIKE ?;";
-    if (build_stmt_va(&pp_stmt, db, sql, 1, search_pattern_like) == -1)
+    sql_query_fmt = "SELECT * FROM movies WHERE %s LIKE ?;";
+    sql_query_len = snprintf(NULL, 0, sql_query_fmt, search_by);
+    if (!(sql_query = malloc(sql_query_len + 1))) {
+      free(search_pattern_like);
       return NULL;
+    }
+    snprintf(sql_query, sql_query_len + 1, sql_query_fmt, search_by);
 
+    if (build_stmt_va(&pp_stmt, db, sql_query, 1, search_pattern_like) == -1) {
+      free(sql_query);
+      free(search_pattern_like);
+      return NULL;
+    }
+
+    free(sql_query);
     free(search_pattern_like);
   } else if (strncmp(search_type, "startswith", strlen("startswith")) == 0) {
     len_search_pattern_like = len_search_pattern + 1;  // 1 '%'
@@ -134,14 +157,35 @@ json_t *db_read_movies(const char *search_pattern, const char *search_type) {
     snprintf(search_pattern_like, len_search_pattern_like + 1, "%s%%",
              search_pattern);
 
-    sql = "SELECT * FROM movies WHERE title LIKE ?;";
-    if (build_stmt_va(&pp_stmt, db, sql, 1, search_pattern_like) == -1)
+    sql_query = "SELECT * FROM movies WHERE %s LIKE ?;";
+    sql_query_fmt = "SELECT * FROM movies WHERE %s LIKE ?;";
+    sql_query_len = snprintf(NULL, 0, sql_query_fmt, search_by);
+    if (!(sql_query = malloc(sql_query_len + 1))) {
+      free(search_pattern_like);
       return NULL;
+    }
+    snprintf(sql_query, sql_query_len + 1, sql_query_fmt, search_by);
 
+    if (build_stmt_va(&pp_stmt, db, sql_query, 1, search_pattern_like) == -1) {
+      free(sql_query);
+      free(search_pattern_like);
+      return NULL;
+    }
+
+    free(sql_query);
     free(search_pattern_like);
   } else if (strncmp(search_type, "exact", strlen("exact")) == 0) {
-    sql = "SELECT * FROM movies WHERE title = ?;";
-    if (build_stmt_va(&pp_stmt, db, sql, 1, search_pattern) == -1) return NULL;
+    sql_query_fmt = "SELECT * FROM movies WHERE %s = ?;";
+    sql_query_len = snprintf(NULL, 0, sql_query_fmt, search_by);
+    if (!(sql_query = malloc(sql_query_len + 1))) return NULL;
+    snprintf(sql_query, sql_query_len + 1, sql_query_fmt, search_by);
+
+    if (build_stmt_va(&pp_stmt, db, sql_query, 1, search_pattern) == -1) {
+      free(sql_query);
+      return NULL;
+    }
+
+    free(sql_query);
   } else {
     return json_pack(JSON_ERROR_FMT, "status", HTTP_BAD_REQUEST_CODE, "error",
                      "Unsupported search type");
