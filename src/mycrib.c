@@ -84,9 +84,8 @@ int main(void) {
     exit(1);
   }
 
-  new_route(routes, "/", HANDLER_VOID, (Handler){.handler_void = root_handler});
-  new_route(routes, "/movies", HANDLER_ARG,
-            (Handler){.handler_arg = movies_handler});
+  new_route(routes, "/", root_handler);
+  new_route(routes, "/movies", movies_handler);
 
   flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_THREAD_PER_CONNECTION |
           MHD_USE_ITC | MHD_USE_TCP_FASTOPEN | MHD_USE_TLS |
