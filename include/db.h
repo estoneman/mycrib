@@ -26,7 +26,8 @@ int db_close(sqlite3 *db);
  * @return JSON-formatted response, regardless if the operation succeeded or not
  *
  */
-json_t *db_read_movies(const char *search_pattern, const char *search_type);
+json_t *db_read_movies(const char *search_pattern, const char *search_type,
+                       const char *search_by);
 
 /**
  * Run prepared statement against database
