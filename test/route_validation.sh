@@ -13,7 +13,10 @@ _TEST_CASES=(
     ['/movies']=400
     ['/nonexistent']=404
     ["/$(python3 -c 'print("a" * 64)')"]=400
-    ["/movies?search_pattern=The&search_type=startswith"]=200
+    ["/movies?search_pattern=The&search_type=startswith&search_by=title"]=200
+    ["/movies?search_pattern=father&search_type=endswith&search_by=title"]=200
+    ["/movies?search_pattern=The%20Godfather&search_type=exact&search_by=title"]=200
+    ["/movies?search_pattern=Godfather&search_type=contains&search_by=title"]=200
 )
 
 _PASS_COUNT=0
@@ -25,6 +28,7 @@ _check_case() {
     local url="https://${_SERVER}:${_PORT}${tc}"
     local resp_code
     local elapsed
+    DEBUG=${DEBUG:-0}
 
     read -r resp_code elapsed < <(
         curl -sS -o /dev/null \
@@ -36,6 +40,9 @@ _check_case() {
         printf '%s \033[0;32m[HTTP %s] passed (%.3fs)\033[0m\n' \
             "[$tc]" "$resp_code" "$elapsed"
         _PASS_COUNT=$((_PASS_COUNT + 1))
+        if [ -n "$DEBUG" ] && [ "$DEBUG" = '1' ]; then
+            curl -sS "$url" | jq
+        fi
     else
         printf '%s \033[0;31m[HTTP %s] failed (%.3fs)\033[0m\n' \
             "[$tc]" "$resp_code" "$elapsed"
