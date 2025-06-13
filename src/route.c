@@ -1,9 +1,3 @@
-/* SUPPORTED API ROUTES
- *   - Home page: GET /
- *   - Get all movies: GET /movies
- *   - Get movie: GET /movie?title=<title>&search_type=<type>
- */
-
 #include "route.h"
 
 #include <assert.h>
