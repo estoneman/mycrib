@@ -1,6 +1,6 @@
 # mycrib
 
-## Tools uses
+## Tools used
 * libubsan
 * libasan
 * valgrind
