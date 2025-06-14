@@ -1,10 +1,12 @@
 #include <assert.h>
 #include <microhttpd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#include "handler.h"
 #include "route.h"
 #include "util/mhd.h"
 #include "util/util.h"
@@ -16,6 +18,14 @@
 
 #define SERVERKEYFILE "../pki/mycrib.key"
 #define SERVERCERTFILE "../pki/mycrib.pem"
+
+static volatile sig_atomic_t keep_running = 1;
+
+void signal_handler(int sig) {
+  (void)sig;
+  keep_running = 0;
+  fprintf(stderr, "[INFO] shutting down server\n");
+}
 
 enum MHD_Result answer_connection(void *cls, struct MHD_Connection *connection,
                                   const char *url, const char *method,
@@ -70,6 +80,8 @@ int main(void) {
   enum MHD_FLAG flags;
   Route *routes;
   char *key_pem, *cert_pem;
+  struct sigaction sa;
+  pid_t self;
 
   cert_pem = load_file(SERVERCERTFILE);
   key_pem = load_file(SERVERKEYFILE);
@@ -80,6 +92,9 @@ int main(void) {
   }
 
   if ((routes = (Route *)calloc(ROUTE_TABLE_SIZE, sizeof(Route))) == NULL) {
+    free(key_pem);
+    free(cert_pem);
+
     fprintf(stderr, "[FATAL] Failed to allocate route table\n");
     exit(1);
   }
@@ -96,22 +111,60 @@ int main(void) {
                        MHD_OPTION_HTTPS_MEM_CERT, cert_pem, MHD_OPTION_END);
 
   if (!daemon) {
+    del_route(routes, "/");
+    del_route(routes, "/movies");
+
+    free(routes);
     free(key_pem);
     free(cert_pem);
 
     return EXIT_FAILURE;
   }
 
-  getchar();
+  sa.sa_handler = signal_handler;
+  sa.sa_flags = 0;
+  sigemptyset(&sa.sa_mask);
+  if (sigaction(SIGINT, &sa, NULL) == -1) {
+    perror("sigaction");
+
+    del_route(routes, "/");
+    del_route(routes, "/movies");
+
+    free(routes);
+    free(key_pem);
+    free(cert_pem);
+
+    return EXIT_FAILURE;
+  }
+
+  if (sigaction(SIGTERM, &sa, NULL) == -1) {
+    perror("sigaction");
+
+    del_route(routes, "/");
+    del_route(routes, "/movies");
+
+    free(key_pem);
+    free(cert_pem);
+    free(routes);
+
+    return EXIT_FAILURE;
+  }
+
+  self = getpid();
+  fprintf(stderr,
+          "[INFO] [%d] started server on port %d, press CTRL+C to stop\n", self,
+          PORT);
+
+  while (keep_running) sleep(1);
 
   MHD_stop_daemon(daemon);
 
   del_route(routes, "/");
   del_route(routes, "/movies");
 
-  if (routes) free(routes);
-  if (key_pem) free(key_pem);
-  if (cert_pem) free(cert_pem);
+  free(key_pem);
+  free(cert_pem);
+  free(routes);
 
   return EXIT_SUCCESS;
 }
