@@ -103,8 +103,10 @@ int main(void) {
   new_route(routes, "/movies", movies_handler);
 
   flags = MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_THREAD_PER_CONNECTION |
-          MHD_USE_ITC | MHD_USE_TCP_FASTOPEN | MHD_USE_TLS |
-          MHD_USE_PEDANTIC_CHECKS | MHD_USE_DEBUG;
+          MHD_USE_ITC | MHD_USE_TLS | MHD_USE_PEDANTIC_CHECKS | MHD_USE_DEBUG;
+#ifdef _LINUX
+  flags |= MHD_USE_TCP_FASTOPEN;
+#endif
   daemon =
       MHD_start_daemon(flags, PORT, NULL, NULL, &answer_connection, &routes,
                        MHD_OPTION_HTTPS_MEM_KEY, key_pem,
