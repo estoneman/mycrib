@@ -55,10 +55,10 @@ json_t *movies_handler(const RequestContext *req_ctx) {
     if (!rows)
       return json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_INTERNAL_SERVER_ERROR,
                        "error", "Internal Server Error");
-
-    return rows;
   } else {
     fprintf(stderr, "Unimplemented handler for HTTP %s\n", req_ctx->method);
-    assert(0);
+    rows = NULL;
   }
+
+  return rows;
 }
