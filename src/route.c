@@ -88,6 +88,13 @@ enum MHD_Result router(Route *routes, const RequestContext *req_ctx) {
   }
 
   result = routes[id].handler(req_ctx);
+  if (!result) {
+    return send_response(
+        req_ctx->connection,
+        MHD_get_reason_phrase_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
+        MHD_get_reason_phrase_len_for(MHD_HTTP_INTERNAL_SERVER_ERROR),
+        MHD_HTTP_INTERNAL_SERVER_ERROR);
+  }
 
   response = json_dumps(result, 0);
 
