@@ -1,14 +1,27 @@
 cmake_minimum_required(VERSION 3.20)
-project(mycrib)
+
+set(MAIN "mycrib")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_C_STANDARD 11)
+set(SANITIZE_OPTIONS -fsanitize=address,pointer-subtract,undefined)
+set(COMMON_C_FLAGS -Wall -Wextra -Wmissing-field-initializers -pedantic)
+
+project(${MAIN})
+add_executable(${MAIN})
+
+message(STATUS "CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(CMAKE_C_COMPILER clang)
+    target_compile_definitions(${MAIN} PRIVATE -D_MACH=1)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_C_COMPILER gcc)
+    target_compile_definitions(${MAIN} PRIVATE -D_LINUX=1)
+endif()
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MICROHTTPD REQUIRED libmicrohttpd)
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 pkg_check_modules(JANSSON REQUIRED jansson)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_C_COMPILER gcc)
-set(CMAKE_C_STANDARD 11)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE
@@ -18,33 +31,31 @@ endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-set(SANITIZE_OPTIONS -fsanitize=address,pointer-subtract,undefined)
-
-set(COMMON_C_FLAGS -Wall -Wextra -Wmissing-field-initializers -pedantic)
-
 macro(target_add_compile_options target)
   target_compile_options(
       ${target} PRIVATE ${COMMON_C_FLAGS} $<$<CONFIG:Release>:-Werror -O3>
                       $<$<CONFIG:Debug>:-g -O0 ${SANITIZE_OPTIONS}>)
 endmacro()
 
-add_executable(mycrib)
-
 set(C_SOURCE ./src/mycrib.c ./src/route.c ./src/db.c ./src/handler.c
              ./src/util/mhd.c ./src/util/util.c)
 
-target_sources(mycrib PRIVATE ${C_SOURCE})
+target_sources(${MAIN} PRIVATE ${C_SOURCE})
 
-target_include_directories(mycrib PRIVATE include/)
-target_include_directories(mycrib PRIVATE ${MICROHTTPD_INCLUDE_DIRS})
+target_include_directories(${MAIN} PRIVATE include/)
+target_include_directories(${MAIN} PRIVATE ${MICROHTTPD_INCLUDE_DIRS})
+target_include_directories(${MAIN} PRIVATE ${JANSSON_INCLUDE_DIRS})
 
-target_link_libraries(mycrib PRIVATE ${MICROHTTPD_LIBRARIES})
-target_link_libraries(mycrib PRIVATE ${SQLITE3_LIBRARIES})
-target_link_libraries(mycrib PRIVATE ${JANSSON_LIBRARIES})
+target_link_directories(${MAIN} PRIVATE ${MICROHTTPD_LIBRARY_DIRS})
+target_link_directories(${MAIN} PRIVATE ${JANSSON_LIBRARY_DIRS})
 
-target_add_compile_options(mycrib)
+target_link_libraries(${MAIN} PRIVATE ${MICROHTTPD_LIBRARIES})
+target_link_libraries(${MAIN} PRIVATE ${SQLITE3_LIBRARIES})
+target_link_libraries(${MAIN} PRIVATE ${JANSSON_LIBRARIES})
 
-target_link_options(mycrib PRIVATE ${SANITIZE_OPTIONS})
+target_add_compile_options(${MAIN})
+
+target_link_options(${MAIN} PRIVATE ${SANITIZE_OPTIONS})
 
 if(MYCRIB_TEST)
   add_executable(test_util)
