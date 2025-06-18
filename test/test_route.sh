@@ -6,7 +6,7 @@ declare -A _TEST_CASES
 declare -i _PORT
 
 _PORT=8080
-_SERVER=fedora.com
+_SERVER=mac-terminull.com
 
 _TEST_CASES=(
     ['/']=200
@@ -31,7 +31,7 @@ _check_case() {
     DEBUG=${DEBUG:-0}
 
     read -r resp_code elapsed < <(
-        curl -sS -o /dev/null \
+        curl --cacert pki/mycrib.pem -sS -o /dev/null \
             -w "%{response_code} %{time_total}\n" \
             "$url"
     )
