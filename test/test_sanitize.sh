@@ -22,7 +22,7 @@ PID=$!
 
 cd .. || exit
 
-while ! nc -zvw 1 mac-terminull.com 8080 >/dev/null 2>&1; do
+while ! nc -zvw 1 "$(hostname)" 8080 >/dev/null 2>&1; do
     sleep 0.5
 done
 

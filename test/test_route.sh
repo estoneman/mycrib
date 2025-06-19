@@ -6,7 +6,7 @@ declare -A _TEST_CASES
 declare -i _PORT
 
 _PORT=8080
-_SERVER=mac-terminull.com
+_SERVER="$(hostname)"
 
 _TEST_CASES=(
     ['/']=200
@@ -41,7 +41,7 @@ _check_case() {
             "[$tc]" "$resp_code" "$elapsed"
         _PASS_COUNT=$((_PASS_COUNT + 1))
         if [ -n "$DEBUG" ] && [ "$DEBUG" = '1' ]; then
-            curl -sS "$url" | jq
+            curl --cacert pki/mycrib.pem -sS "$url" | jq
         fi
     else
         printf '%s \033[0;31m[HTTP %s] failed (%.3fs)\033[0m\n' \
