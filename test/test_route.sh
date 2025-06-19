@@ -50,20 +50,44 @@ _check_case() {
     fi
 }
 
-_main() {
-    for _TC in "${!_TEST_CASES[@]}"; do
-        _check_case "$_TC" "${_TEST_CASES[$_TC]}"
-    done
+BUILDDIR=build
+(cd $BUILDDIR && cmake -DCMAKE_BUILD_TYPE=Release .. && make)
 
-    echo
-    if [ "$_FAIL_COUNT" -eq 0 ]; then
-        printf '\033[0;32mAll %d tests passed! ✅\033[0m\n' "$_PASS_COUNT"
-    else
-        printf '\033[0;33mSummary: %d passed, %d failed ⚠️\033[0m\n' \
-            "$_PASS_COUNT" "$_FAIL_COUNT"
-    fi
-}
+cd $BUILDDIR || exit
 
-_main
+_ASAN_OPTIONS='log_path=stdout'
+case $(uname) in
+    Linux)
+        _ASAN_OPTIONS+=',detect_leaks=1'
+        ;;
+    *)
+        ;;
+esac
+./mycrib >sanitize.log 2>&1 &
+PID=$!
+cd .. || exit
+
+while ! nc -zvw 1 "$(hostname)" 8080 >/dev/null 2>&1; do
+    sleep 0.5
+done
+
+printf '[INFO] server is running (pid=%d)\n' $PID
+for _TC in "${!_TEST_CASES[@]}"; do
+    _check_case "$_TC" "${_TEST_CASES[$_TC]}"
+done
+
+echo
+if [ "$_FAIL_COUNT" -eq 0 ]; then
+    printf '\033[0;32mAll %d tests passed! ✅\033[0m\n' "$_PASS_COUNT"
+else
+    printf '\033[0;33mSummary: %d passed, %d failed ⚠️\033[0m\n' \
+        "$_PASS_COUNT" "$_FAIL_COUNT"
+fi
+
+printf '[INFO] stopping server (pid=%d)\n' $PID
+
+if ! kill -TERM $PID || ! wait $PID; then
+    echo '[ERROR] failed to stop server'
+fi
 
 unset _FAIL_COUNT _PASS_COUNT _PORT _SERVER _TC _TEST_CASES
