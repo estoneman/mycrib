@@ -34,6 +34,13 @@ json_t *movies_handler(const RequestContext *req_ctx) {
               strlen(MHD_HTTP_METHOD_GET)) == 0) {
     const char *search_type, *search_pattern, *search_by;
 
+    search_pattern = MHD_lookup_connection_value(
+        req_ctx->connection, MHD_GET_ARGUMENT_KIND, "search_pattern");
+
+    if (!search_pattern)
+      return json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_BAD_REQUEST, "error",
+                       "A search pattern must be provided");
+
     search_type = MHD_lookup_connection_value(
         req_ctx->connection, MHD_GET_ARGUMENT_KIND, "search_type");
 
@@ -43,13 +50,6 @@ json_t *movies_handler(const RequestContext *req_ctx) {
                                             MHD_GET_ARGUMENT_KIND, "search_by");
 
     if (!search_by) search_by = "title";
-
-    search_pattern = MHD_lookup_connection_value(
-        req_ctx->connection, MHD_GET_ARGUMENT_KIND, "search_pattern");
-
-    if (!search_pattern)
-      return json_pack(JSON_ERROR_FMT, "status", MHD_HTTP_BAD_REQUEST, "error",
-                       "A search pattern must be provided");
 
     rows = db_read_movies(search_pattern, search_type, search_by);
     if (!rows)
